@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project wannabe programmer "kbx"</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #000; /* พื้นหลังสีดำ */
+            color: #fff; /* สีของข้อความ */
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            color: #fff; /* สีของข้อความ */
+        }
+        #randomWord {
+            font-size: 2em;
+            margin: 20px 0;
+            color: #fff; /* สีของข้อความ */
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            background-color: #fff; /* สีของปุ่ม */
+            color: #000; /* สีของข้อความบนปุ่ม */
+            border: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #ccc; /* สีพื้นหลังของปุ่มเมื่อโฮเวอร์ */
+        }
+        form {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        input {
+            padding: 10px;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+        #countdown {
+            font-size: 1em;
+            color: red;
+            margin-top: 20px;
+        }
+        .instructions, .credits {
+            color: #fff; /* สีของข้อความ */
+            margin-top: 20px;
+            font-size: 1em;
+            text-align: center;
+            width: 80%;
+        }
+        .credits {
+            margin-top: 10px;
+            color: #aaa; /* สีของข้อความ */
+        }
+    </style>
+</head>
+<body>
+    <h1>KB"X"</h1>
+    <p id="randomWord">Click the button to get a random word!</p>
+    <button id="generateButton" onclick="generateRandomWord()">Generate Word</button>
+
+    <form id="addWordForm" onsubmit="addWord(event)">
+        <input type="text" id="newWord" placeholder="Enter a new word" required>
+        <button type="submit" id="addWordButton">Add Word</button>
+    </form>
+
+    <div id="countdown"></div>
+
+    <script>
+        var words = JSON.parse(localStorage.getItem('words')) || ["นล", "ทอย", "นัจ", "ไกด์", "ใครวะ"];
+        var maxClicks = 4;
+        var maxAddWord = 2;
+        var cooldownTime = 4 * 60 * 1000; // 4 นาทีใน milliseconds
+
+        function init() {
+            if (!localStorage.getItem('clickCount')) {
+                localStorage.setItem('clickCount', '0');
+            }
+            if (!localStorage.getItem('addWordCount')) {
+                localStorage.setItem('addWordCount', '0');
+            }
+            if (!localStorage.getItem('lastClickTime')) {
+                localStorage.setItem('lastClickTime', '0');
+            }
+            if (!localStorage.getItem('lastAddWordTime')) {
+                localStorage.setItem('lastAddWordTime', '0');
+            }
+            checkCooldowns();
+        }
+
+        function checkCooldowns() {
+            var currentTime = new Date().getTime();
+
+            var lastClickTime = parseInt(localStorage.getItem('lastClickTime'));
+            var clickCount = parseInt(localStorage.getItem('clickCount'));
+            if (clickCount >= maxClicks && (currentTime - lastClickTime < cooldownTime)) {
+                disableButton('generateButton', 'No more clicks allowed');
+                startCountdown('generateButton', cooldownTime - (currentTime - lastClickTime));
+            } else if (currentTime - lastClickTime >= cooldownTime) {
+                localStorage.setItem('clickCount', '0');
+                enableButton('generateButton', 'Generate Word');
+            }
+
+            var lastAddWordTime = parseInt(localStorage.getItem('lastAddWordTime'));
+            var addWordCount = parseInt(localStorage.getItem('addWordCount'));
+            if (addWordCount >= maxAddWord && (currentTime - lastAddWordTime < cooldownTime)) {
+                disableButton('addWordButton', 'Cannot add more words');
+                startCountdown('addWordButton', cooldownTime - (currentTime - lastAddWordTime));
+            } else if (currentTime - lastAddWordTime >= cooldownTime) {
+                localStorage.setItem('addWordCount', '0');
+                enableButton('addWordButton', 'Add Word');
+            }
+        }
+
+        function generateRandomWord() {
+            var currentTime = new Date().getTime();
+            var clickCount = parseInt(localStorage.getItem('clickCount'));
+
+            if (clickCount < maxClicks || currentTime - parseInt(localStorage.getItem('lastClickTime')) >= cooldownTime) {
+                if (currentTime - parseInt(localStorage.getItem('lastClickTime')) >= cooldownTime) {
+                    clickCount = 0;
+                    localStorage.setItem('clickCount', '0');
+                }
+
+                var randomIndex = Math.floor(Math.random() * words.length);
+                var randomWord = words[randomIndex];
+                document.getElementById("randomWord").textContent = randomWord;
+
+                clickCount++;
+                localStorage.setItem('clickCount', clickCount.toString());
+                localStorage.setItem('lastClickTime', currentTime.toString());
+
+                if (clickCount >= maxClicks) {
+                    disableButton('generateButton', 'No more clicks allowed');
+                    startCountdown('generateButton', cooldownTime);
+                }
+            }
+        }
+
+        function addWord(event) {
+            event.preventDefault();
+            var currentTime = new Date().getTime();
+            var addWordCount = parseInt(localStorage.getItem('addWordCount'));
+
+            if (addWordCount < maxAddWord || currentTime - parseInt(localStorage.getItem('lastAddWordTime')) >= cooldownTime) {
+                if (currentTime - parseInt(localStorage.getItem('lastAddWordTime')) >= cooldownTime) {
+                    addWordCount = 0;
+                    localStorage.setItem('addWordCount', '0');
+                }
+
+                var newWord = document.getElementById("newWord").value;
+                if (newWord) {
+                    words.push(newWord);
+                    localStorage.setItem('words', JSON.stringify(words));
+                    document.getElementById("newWord").value = '';
+                    alert(newWord + " has been added to the list!");
+
+                    addWordCount++;
+                    localStorage.setItem('addWordCount', addWordCount.toString());
+                    localStorage.setItem('lastAddWordTime', currentTime.toString());
+
+                    if (addWordCount >= maxAddWord) {
+                        disableButton('addWordButton', 'Cannot add more words');
+                        startCountdown('addWordButton', cooldownTime);
+                    }
+                }
+            }
+        }
+
+        function startCountdown(buttonId, remainingTime) {
+            var countdownElement = document.getElementById('countdown');
+            var countdownInterval = setInterval(function() {
+                var minutes = Math.floor(remainingTime / 60000);
+                var seconds = Math.floor((remainingTime % 60000) / 1000);
+                countdownElement.textContent = 'Time left: ' + minutes + 'm ' + seconds + 's';
+
+                if (remainingTime <= 0) {
+                    clearInterval(countdownInterval);
+                    countdownElement.textContent = '';
+                    enableButton(buttonId, buttonId === 'generateButton' ? 'Generate Word' : 'Add Word');
+                } else {
+                    remainingTime -= 1000;
+                }
+            }, 1000);
+        }
+
+        function disableButton(buttonId, message) {
+            var button = document.getElementById(buttonId);
+            button.disabled = true;
+            button.textContent = message;
+        }
+
+        function enableButton(buttonId, message) {
+            var button = document.getElementById(buttonId);
+            button.disabled = false;
+            button.textContent = message;
+        }
+
+        init();
+        setInterval(checkCooldowns, 1000); // เช็ค cooldown ทุกๆ 1 วินาที
+    </script>
+
+    <div class="instructions">
+        <h2>Instructions</h2>
+        <p>Click the "Generate Word" button to see a random word from the list.</p>
+        <p>You can add a new word to the list by entering it in the text box and clicking "Add Word".</p>
+        <p>Note: You can generate a word up to 4 times and add a word up to 2 times within 4 minutes.</p>
+    </div>
+
+    <div class="credits">
+        <p>Created by นักศึกษา สาขาวิชา วิศวกรรมคอมพิวเตอร์
